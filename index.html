@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#163b35" />
-<title>講台排班｜主日講者登錄</title>
+<title>高雄浸信會 主日講員登錄系統</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23163b35'/%3E%3Cpath d='M32 12v40M22 22h20M18 28h28' stroke='%23f8f3e9' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
 :root{--ink:#18312e;--muted:#6d7d78;--green:#163b35;--green-2:#285e50;--cream:#f8f3e9;--paper:#fffdf9;--line:#e7e0d5;--gold:#c79044;--rose:#f2e4db;--shadow:0 18px 50px rgba(30,48,43,.09)}
@@ -15,7 +15,7 @@
 <body>
 <div class="app">
 <aside class="sidebar"><div class="brand"><div class="brand-mark">✦</div><div><strong>講台排班</strong><span>主日講者登錄系統</span></div></div><nav class="nav"><button class="active" data-view="overview">◷　排班總覽</button><button data-view="register">＋　登錄講者</button></nav><div class="side-note"><b>小提醒</b>同一個主日只能安排一位講者。若需要調整，請從「我的登錄」修改自己建立的資料。</div></aside>
-<main class="main"><div class="topbar"><div><div class="eyebrow">Sunday speaker roster</div><h1>讓每個主日，都有人預備分享。</h1></div><div class="status">●　系統運作中</div></div>
+<main class="main"><div class="topbar"><div><div class="eyebrow">Sunday speaker roster</div><h1>高雄浸信會 主日講員登錄系統</h1></div><div class="status">●　系統運作中</div></div>
 <section id="overview" class="view active"><div class="hero"><div><h2>排班總覽</h2><p>查看近期主日的講者安排，提早為聚會預備。</p></div><button class="action" data-view="register">＋ 登錄新講者</button></div><div class="grid"><div class="card"><div class="card-head"><div><h2>主日月曆</h2><p>點選尚未安排的日期，可直接開始登錄</p></div><div class="month"><button id="prev">‹</button><span id="monthLabel"></span><button id="next">›</button></div></div><div id="calendar" class="calendar"></div><div class="legend"><span><i></i>已安排</span><span><i class="open"></i>可登錄</span></div></div><div class="card"><div class="card-head"><div><h2>近期排班</h2><p>接下來的主日安排</p></div></div><div id="upcoming" class="upcoming"></div><div class="notice">日期如需調整，請由原登錄人進入「我的登錄」修改。</div></div></div><div class="card" style="margin-top:22px"><div class="card-head"><div><h2>全部排班</h2><p>最新登錄資料</p></div><span class="eyebrow" id="countLabel"></span></div><div id="records" class="record-list"></div></div></section>
 <section id="register" class="view"><div class="hero"><div><h2 id="formTitle">登錄主日講者</h2><p>填寫以下資料，完成後會立即出現在排班總覽。</p></div></div><div class="card form-wrap"><form id="form"><div class="form-grid"><div class="field"><label for="registrant">登錄人姓名<em>*</em></label><input id="registrant" required placeholder="例如：王小明" /><span class="helper">之後只有這個姓名可以修改這筆資料</span></div><div class="field"><label for="speaker">邀請講者姓名<em>*</em></label><input id="speaker" required pattern="[一-龥]{2,6}" title="請輸入 2～6 個中文字的中文全名" placeholder="例如：陳志明" /><span class="helper">請輸入中文全名，例如：陳志明</span></div><div class="field full"><label for="background">講者的背景與現職<em>*</em></label><textarea id="background" required placeholder="例如：台北浸信會牧師，現任青年牧區區牧長，專注於門徒訓練與家庭事工。"></textarea></div><div class="field full"><label>選擇主日<em>*</em></label><div class="date-picker"><input id="date" type="date" required /><div class="selected-date" id="dateHint">請選擇一個尚未安排的星期日</div></div><span class="helper">僅能選擇星期日，已排班日期無法重複登錄。</span></div></div><div class="form-actions"><button class="action" type="submit">儲存登錄</button><button class="secondary" type="button" data-view="overview">返回總覽</button><span class="message" id="message"></span></div></form></div></section>
 </main></div>
@@ -30,6 +30,7 @@ function updateDateHint(){let v=$('#date').value;if(!v)return;let x=new Date(v+'
 function edit(id){let r=records.find(x=>x.id==id);editId=r.id;$('#formTitle').textContent='修改我的登錄';['registrant','speaker','background','date'].forEach(k=>$('#'+k).value=r[k]);updateDateHint();go('register');}
 $$('[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));$('#prev').onclick=()=>{viewDate.setMonth(viewDate.getMonth()-1);renderCalendar()};$('#next').onclick=()=>{viewDate.setMonth(viewDate.getMonth()+1);renderCalendar()};$('#date').onchange=updateDateHint;$('#form').onsubmit=e=>{e.preventDefault();let data={registrant:$('#registrant').value.trim(),speaker:$('#speaker').value.trim(),background:$('#background').value.trim(),date:$('#date').value};let x=new Date(data.date+'T00:00:00');if(x.getDay()!==0){$('#message').textContent='日期必須是星期日。';return}let duplicate=records.find(r=>r.date===data.date&&r.id!==editId);if(duplicate){$('#message').textContent='這個主日已排班，請選擇其他日期。';return}if(editId){let r=records.find(r=>r.id===editId);if(r.registrant!==data.registrant){$('#message').textContent='只能由原登錄人修改這筆資料。';return}Object.assign(r,data)}else records.push({id:Date.now(),...data});save();editId=null;$('#form').reset();$('#formTitle').textContent='登錄主日講者';$('#message').textContent='已儲存！';setTimeout(()=>{go('overview');$('#message').textContent=''},700)};render();
 </script></body></html>
+
 
 
 
