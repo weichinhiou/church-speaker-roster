@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#163b35" />
+<meta property="og:type" content="website" />`n<meta property="og:title" content="高雄浸信會 主日講員登錄系統" />`n<meta property="og:description" content="高雄浸信會主日講員排班與登錄系統" />`n<meta property="og:image" content="https://weichinhiou.github.io/church-speaker-roster/og.png" />`n<meta name="twitter:card" content="summary_large_image" />`n<meta name="twitter:title" content="高雄浸信會 主日講員登錄系統" />`n<meta name="twitter:description" content="高雄浸信會主日講員排班與登錄系統" />`n<meta name="twitter:image" content="https://weichinhiou.github.io/church-speaker-roster/og.png" />`n<meta name="theme-color" content="#163b35" />
 <title>高雄浸信會 主日講員登錄系統</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23163b35'/%3E%3Cpath d='M32 12v40M22 22h20M18 28h28' stroke='%23f8f3e9' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
@@ -30,6 +30,7 @@ function updateDateHint(){let v=$('#date').value;if(!v)return;let x=new Date(v+'
 function edit(id){let r=records.find(x=>x.id==id);editId=r.id;$('#formTitle').textContent='修改我的登錄';['registrant','speaker','background','date'].forEach(k=>$('#'+k).value=r[k]);updateDateHint();go('register');}
 $$('[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));$('#prev').onclick=()=>{viewDate.setMonth(viewDate.getMonth()-1);renderCalendar()};$('#next').onclick=()=>{viewDate.setMonth(viewDate.getMonth()+1);renderCalendar()};$('#date').onchange=updateDateHint;$('#form').onsubmit=e=>{e.preventDefault();let data={registrant:$('#registrant').value.trim(),speaker:$('#speaker').value.trim(),background:$('#background').value.trim(),date:$('#date').value};let x=new Date(data.date+'T00:00:00');if(x.getDay()!==0){$('#message').textContent='日期必須是星期日。';return}let duplicate=records.find(r=>r.date===data.date&&r.id!==editId);if(duplicate){$('#message').textContent='這個主日已排班，請選擇其他日期。';return}if(editId){let r=records.find(r=>r.id===editId);if(r.registrant!==data.registrant){$('#message').textContent='只能由原登錄人修改這筆資料。';return}Object.assign(r,data)}else records.push({id:Date.now(),...data});save();editId=null;$('#form').reset();$('#formTitle').textContent='登錄主日講者';$('#message').textContent='已儲存！';setTimeout(()=>{go('overview');$('#message').textContent=''},700)};render();
 </script></body></html>
+
 
 
 
