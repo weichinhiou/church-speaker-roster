@@ -24,6 +24,14 @@
 <style>
 .day.booked{cursor:pointer}.day.booked:hover .day-hover-detail{opacity:1;visibility:visible;transform:translateY(0)}.day-hover-detail{position:absolute;z-index:5;left:8px;right:8px;top:calc(100% - 4px);padding:10px 11px;background:var(--green);color:#fff;border-radius:10px;box-shadow:0 12px 24px rgba(22,59,53,.2);opacity:0;visibility:hidden;transform:translateY(-4px);transition:.16s;pointer-events:none;font-size:12px;line-height:1.4}.day-hover-detail strong{display:block;font-size:13px}.day-hover-detail .detail-role{display:block;color:#d7e7df;margin-top:2px}.day-hover-detail .detail-registrant{display:block;color:#b8cdc6;margin-top:5px;font-size:11px}.day-modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px}.day-modal[hidden]{display:none}.day-modal-backdrop{position:absolute;inset:0;background:rgba(24,49,46,.42)}.day-modal-card{position:relative;width:min(100%,360px);padding:24px;background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:0 22px 60px rgba(24,49,46,.24)}.day-modal-card h2{margin:8px 0 2px;font-size:22px}.day-modal-role{color:var(--green);font-weight:800}.day-modal-registrant{margin-top:16px;color:var(--muted);font-size:13px}.day-modal-close{position:absolute;right:12px;top:10px;width:32px;height:32px;border-radius:50%;background:#f0ece4;color:var(--green);font-size:22px;line-height:1}
 </style>
+<style>
+.record .edit{display:none}
+.day-modal-edit{display:block;width:100%;margin-top:18px;padding:11px 14px;border:0;border-radius:11px;background:var(--green);color:#fff;font-weight:800;cursor:pointer}
+</style>
+<style>
+.schedule-item{cursor:pointer}
+.day-modal-background{margin-top:16px;padding-top:14px;border-top:1px solid #eee8de;color:var(--muted);font-size:13px;line-height:1.7;text-align:left;white-space:pre-wrap}
+</style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <body>
@@ -72,6 +80,120 @@ new MutationObserver(bindRecordRoles).observe(document.querySelector('#records')
 </script><script>
 function bindRecordRegistrant(){document.querySelectorAll('#records .record').forEach(item=>{if(item.querySelector('.record-registrant'))return;const p=item.querySelector('p'),date=item.querySelector('.record-date');if(!p||!date)return;const r=records.find(x=>item.textContent.includes(x.speaker)&&item.textContent.includes(fmt(x.date)));if(!r)return;p.innerHTML=`${r.background}<span class="record-registrant">登錄人：${r.registrant}</span>`;});}
 new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#records'),{childList:true});bindRecordRegistrant();
+</script>
+<script>
+(() => {
+  const note = document.querySelector('#upcoming')?.closest('.card')?.querySelector('.card-head p');
+  if (note) note.textContent = '2026年12月起，未來三個月內的主日安排';
+
+  const modalCard = document.querySelector('#dayModal .day-modal-card');
+  if (modalCard && !modalCard.querySelector('.day-modal-edit')) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'day-modal-edit';
+    button.textContent = '修改';
+    button.addEventListener('click', () => {
+      const record = window.currentDayModalRecord;
+      if (!record) return;
+      document.querySelector('#dayModal').hidden = true;
+      edit(record.id);
+    });
+    modalCard.appendChild(button);
+  }
+
+  showDayModal = function (record) {
+    window.currentDayModalRecord = record;
+    const date = new Date(record.date + 'T00:00:00');
+    const week = '日一二三四五六'[date.getDay()];
+    document.querySelector('#dayModalDate').textContent = `${record.date.replaceAll('-', '/')}(${week})`;
+    document.querySelector('#dayModalTitle').textContent = record.speaker;
+    document.querySelector('#dayModalRole').textContent = record.role;
+    document.querySelector('#dayModalRegistrant').textContent = `登錄人：${record.registrant}`;
+    document.querySelector('#dayModal').hidden = false;
+  };
+})();
+</script>
+<style>
+#allRecordsCard{display:none!important}
+.roster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.speaker-card{border:1px solid var(--line);border-radius:14px;background:#fff;padding:16px}
+.speaker-card h3{margin:0;color:var(--green);font-size:17px}
+.speaker-card .roster-role{display:block;margin-top:4px;color:var(--green);font-weight:800;font-size:13px}
+.speaker-card p{margin:10px 0;color:var(--muted);font-size:13px}
+.speaker-dates{padding-top:10px;border-top:1px solid #eee8de;color:var(--ink)!important}
+.pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px}
+.pager button{padding:8px 13px;border-radius:9px;background:#edf5f0;color:#397060;font-weight:800}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:900px){.roster-grid{grid-template-columns:1fr}}
+</style>
+<script>
+(() => {
+  const allCard = document.querySelector('#records')?.closest('.card');
+  if (allCard) { allCard.id = 'allRecordsCard'; }
+
+  const nav = document.querySelector('.nav');
+  const mobileNav = document.querySelector('.mobile-nav');
+  function addNav(container) {
+    if (!container || container.querySelector('[data-view="roster"]')) return;
+    const b = document.createElement('button');
+    b.dataset.view = 'roster';
+    b.innerHTML = container.classList.contains('mobile-nav') ? '♙<br>講者名冊' : '♙　講者名冊';
+    b.addEventListener('click', () => go('roster'));
+    container.appendChild(b);
+  }
+  addNav(nav); addNav(mobileNav);
+
+  const roster = document.createElement('section');
+  roster.id = 'roster'; roster.className = 'view';
+  roster.innerHTML = '<div class="hero"><div><h2>講者名冊</h2><p>依講者姓名查看職稱、背景與現職，以及曾經主日講台日期。</p></div></div><div class="card"><div class="card-head"><div><h2>講者紀錄</h2><p>資料會從主日講者登錄資料庫彙整。</p></div></div><div id="rosterGrid" class="roster-grid"></div></div>';
+  document.querySelector('main.main').appendChild(roster);
+
+  let upcomingPage = 0;
+  function renderUpcomingPaged() {
+    const box = document.querySelector('#upcoming');
+    if (!box || !Array.isArray(records)) return;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const start = new Date(timelineStart + 'T00:00:00');
+    const from = today > start ? today : start;
+    const end = new Date(start); end.setMonth(end.getMonth() + 3);
+    const list = records.filter(r => { const d = new Date(r.date+'T00:00:00'); return d >= from && d < end; }).sort((a,b)=>a.date.localeCompare(b.date));
+    const pages = Math.max(1, Math.ceil(list.length / 4));
+    upcomingPage = Math.min(upcomingPage, pages - 1);
+    const pageItems = list.slice(upcomingPage*4, upcomingPage*4+4);
+    box.innerHTML = pageItems.length ? pageItems.map(r => `<div class="schedule-item" data-schedule-date="${r.date}" title="點擊查看完整背景"><div class="date-pill"><b>${r.date.slice(8)}</b>${new Date(r.date+'T00:00:00').toLocaleDateString('zh-TW',{weekday:'short'})}</div><div><strong>${r.speaker}</strong><span>${r.background.length > 20 ? r.background.slice(0,20) + '...more' : r.background}</span></div><span class="badge">已安排</span></div>`).join('') : '<p style="color:var(--muted);font-size:13px">目前沒有今天以後的近期排班。</p>';
+    box.querySelectorAll('[data-schedule-date]').forEach(item => item.addEventListener('click', () => { const r = records.find(x => x.date === item.dataset.scheduleDate); if (r) showDayModal(r); }));
+    let pager = box.nextElementSibling;
+    if (!pager || !pager.classList.contains('pager')) { pager = document.createElement('div'); pager.className='pager'; box.after(pager); }
+    pager.innerHTML = `<button type="button" ${upcomingPage===0?'disabled':''}>上一頁</button><span>${upcomingPage+1} / ${pages}</span><button type="button" ${upcomingPage>=pages-1?'disabled':''}>下一頁</button>`;
+    pager.children[0].onclick=()=>{upcomingPage--;renderUpcomingPaged()}; pager.children[2].onclick=()=>{upcomingPage++;renderUpcomingPaged()};
+  }
+  function renderRoster() {
+    const grid = document.querySelector('#rosterGrid'); if (!grid || !Array.isArray(records)) return;
+    const grouped = new Map();
+    records.forEach(r => { if (!grouped.has(r.speaker)) grouped.set(r.speaker,{...r,dates:[]}); grouped.get(r.speaker).dates.push(r.date); });
+    const people = [...grouped.values()].sort((a,b)=>a.speaker.localeCompare(b.speaker,'zh-Hant'));
+    grid.innerHTML = people.length ? people.map(r => `<article class="speaker-card"><h3>${r.speaker}</h3><span class="roster-role">${r.role}</span><p>${r.background}</p><p class="speaker-dates"><strong>曾經主日講台日期</strong><br>${r.dates.sort().map(fmt).join('、')}</p></article>`).join('') : '<p style="color:var(--muted)">目前尚無講者紀錄。</p>';
+  }
+  let lastCount = -1;
+  const refresh = () => { if (records.length !== lastCount) { lastCount=records.length; renderUpcomingPaged(); renderRoster(); } };
+  new MutationObserver(refresh).observe(document.querySelector('#upcoming'),{childList:true});
+  setInterval(refresh, 500);
+  const originalGo = go;
+  go = function(v) { originalGo(v); if(v==='roster') renderRoster(); };
+})();
+</script>
+<script>
+(() => {
+  const baseShowDayModal = showDayModal;
+  showDayModal = function(record) {
+    baseShowDayModal(record);
+    const card = document.querySelector('#dayModal .day-modal-card');
+    if (!card) return;
+    let background = card.querySelector('.day-modal-background');
+    if (!background) { background = document.createElement('div'); background.className = 'day-modal-background'; card.querySelector('#dayModalRegistrant').after(background); }
+    background.textContent = record.background;
+  };
+})();
 </script></body></html>
 
 
