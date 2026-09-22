@@ -30,6 +30,7 @@
 </style>
 <style>
 .schedule-item{cursor:pointer}
+.more-link{color:#c9792b;font-weight:800;white-space:nowrap}
 .day-modal-background{margin-top:16px;padding-top:14px;border-top:1px solid #eee8de;color:var(--muted);font-size:13px;line-height:1.7;text-align:left;white-space:pre-wrap}
 </style>
 </head>
@@ -160,7 +161,7 @@ new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#reco
     const pages = Math.max(1, Math.ceil(list.length / 4));
     upcomingPage = Math.min(upcomingPage, pages - 1);
     const pageItems = list.slice(upcomingPage*4, upcomingPage*4+4);
-    box.innerHTML = pageItems.length ? pageItems.map(r => `<div class="schedule-item" data-schedule-date="${r.date}" title="點擊查看完整背景"><div class="date-pill"><b>${r.date.slice(8)}</b>${new Date(r.date+'T00:00:00').toLocaleDateString('zh-TW',{weekday:'short'})}</div><div><strong>${r.speaker}</strong><span>${r.background.length > 20 ? r.background.slice(0,20) + '...more' : r.background}</span></div><span class="badge">已安排</span></div>`).join('') : '<p style="color:var(--muted);font-size:13px">目前沒有今天以後的近期排班。</p>';
+    box.innerHTML = pageItems.length ? pageItems.map(r => `<div class="schedule-item" data-schedule-date="${r.date}" title="點擊查看完整背景"><div class="date-pill"><b>${r.date.slice(8)}</b>${new Date(r.date+'T00:00:00').toLocaleDateString('zh-TW',{weekday:'short'})}</div><div><strong>${r.speaker}</strong><span>${r.background.length > 20 ? r.background.slice(0,20) + '<span class="more-link">...more</span>' : r.background}</span></div><span class="badge">已安排</span></div>`).join('') : '<p style="color:var(--muted);font-size:13px">目前沒有今天以後的近期排班。</p>';
     box.querySelectorAll('[data-schedule-date]').forEach(item => item.addEventListener('click', () => { const r = records.find(x => x.date === item.dataset.scheduleDate); if (r) showDayModal(r); }));
     let pager = box.nextElementSibling;
     if (!pager || !pager.classList.contains('pager')) { pager = document.createElement('div'); pager.className='pager'; box.after(pager); }
