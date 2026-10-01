@@ -157,6 +157,12 @@ new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#reco
 .speaker-card .roster-role{display:block;margin-top:4px;color:var(--green);font-weight:800;font-size:13px}
 .speaker-card p{margin:10px 0;color:var(--muted);font-size:13px}
 .speaker-dates{padding-top:10px;border-top:1px solid #eee8de;color:var(--ink)!important}
+.roster-date{display:inline-block;margin:3px 4px 0 0;padding:3px 7px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--green);font:inherit;font-size:12px;cursor:pointer}
+.roster-date:hover{border-color:#c9792b;color:#a85e1e;background:#fff8ef}
+.roster-search{display:flex;align-items:center;gap:10px;margin:4px 0 18px}
+.roster-search input{width:100%;max-width:420px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit}
+.roster-search input:focus{outline:2px solid rgba(201,121,43,.25);border-color:#c9792b}
+.roster-search-hint{color:var(--muted);font-size:12px}
 .pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px}
 .pager button{padding:8px 13px;border-radius:9px;background:#edf5f0;color:#397060;font-weight:800}
 .pager button:disabled{opacity:.4;cursor:not-allowed}
@@ -181,7 +187,7 @@ new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#reco
 
   const roster = document.createElement('section');
   roster.id = 'roster'; roster.className = 'view';
-  roster.innerHTML = '<div class="hero"><div><h2>講者名冊</h2><p>依講者姓名查看職稱、背景與現職，以及曾經主日講台日期。</p></div></div><div class="card"><div class="card-head"><div><h2>講者紀錄</h2><p>資料會從主日講者登錄資料庫彙整。</p></div></div><div id="rosterGrid" class="roster-grid"></div></div>';
+  roster.innerHTML = '<div class="hero"><div><h2>講者名冊</h2><p>依講者姓名查看職稱、背景與現職，以及曾經主日講台日期。</p></div></div><div class="card"><div class="card-head"><div><h2>講者紀錄</h2><p>資料會從主日講者登錄資料庫彙整。</p></div></div><label class="roster-search"><input id="rosterSearch" type="search" placeholder="搜尋講者姓名" autocomplete="off"><span class="roster-search-hint">輸入姓名即可查看講道日期</span></label><div id="rosterGrid" class="roster-grid"></div></div>';
   document.querySelector('main.main').appendChild(roster);
 
   let upcomingPage = 0;
@@ -205,11 +211,21 @@ new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#reco
   }
   function renderRoster() {
     const grid = document.querySelector('#rosterGrid'); if (!grid || !Array.isArray(records)) return;
+    const query = (document.querySelector('#rosterSearch')?.value || '').trim();
     const grouped = new Map();
     records.forEach(r => { if (!grouped.has(r.speaker)) grouped.set(r.speaker,{...r,dates:[]}); grouped.get(r.speaker).dates.push(r.date); });
-    const people = [...grouped.values()].sort((a,b)=>a.speaker.localeCompare(b.speaker,'zh-Hant'));
-    grid.innerHTML = people.length ? people.map(r => `<article class="speaker-card"><h3>${r.speaker}</h3><span class="roster-role">${r.role}</span><p>${r.background}</p><p class="speaker-dates"><strong>曾經主日講台日期</strong><br>${r.dates.sort().map(fmt).join('、')}</p></article>`).join('') : '<p style="color:var(--muted)">目前尚無講者紀錄。</p>';
+    const people = [...grouped.values()].filter(r => !query || r.speaker.includes(query)).sort((a,b)=>a.speaker.localeCompare(b.speaker,'zh-Hant'));
+    grid.innerHTML = people.length ? people.map(r => `<article class="speaker-card"><h3>${r.speaker}</h3><span class="roster-role">${r.role}</span><p>${r.background}</p><p class="speaker-dates"><strong>曾經主日講台日期</strong><br>${r.dates.sort().map(d => `<button type="button" class="roster-date" data-roster-date="${d}">${fmt(d)}</button>`).join('')}</p></article>`).join('') : '<p style="color:var(--muted)">目前尚無講者紀錄。</p>';
   }
+  document.querySelector('#rosterGrid').addEventListener('click', event => {
+    const button = event.target.closest('[data-roster-date]');
+    if (!button) return;
+    viewDate = new Date(button.dataset.rosterDate + 'T00:00:00');
+    go('overview');
+    renderCalendar();
+    document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+  document.querySelector('#rosterSearch').addEventListener('input', renderRoster);
   let lastCount = -1;
   const refresh = () => { if (records.length !== lastCount) { lastCount=records.length; renderUpcomingPaged(); renderRoster(); } };
   new MutationObserver(refresh).observe(document.querySelector('#upcoming'),{childList:true});
