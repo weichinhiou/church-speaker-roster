@@ -27,6 +27,8 @@
 <style>
 .record .edit{display:none}
 .day-modal-edit{display:block;width:100%;margin-top:14px;padding:8px 12px;border:0;border-radius:9px;background:var(--green);color:#fff;font-size:12px;font-weight:800;cursor:pointer}
+.day-modal-delete{display:block;width:100%;margin-top:8px;padding:8px 12px;border:1px solid #d99578;border-radius:9px;background:#fff4ef;color:#a44e35;font-size:12px;font-weight:800;cursor:pointer}
+.day-modal-delete:hover{background:#fce5dc}
 </style>
 <style>
 .schedule-item{cursor:pointer}
@@ -81,6 +83,39 @@ new MutationObserver(bindRecordRoles).observe(document.querySelector('#records')
 </script><script>
 function bindRecordRegistrant(){document.querySelectorAll('#records .record').forEach(item=>{if(item.querySelector('.record-registrant'))return;const p=item.querySelector('p'),date=item.querySelector('.record-date');if(!p||!date)return;const r=records.find(x=>item.textContent.includes(x.speaker)&&item.textContent.includes(fmt(x.date)));if(!r)return;p.innerHTML=`${r.background}<span class="record-registrant">登錄人：${r.registrant}</span>`;});}
 new MutationObserver(bindRecordRegistrant).observe(document.querySelector('#records'),{childList:true});bindRecordRegistrant();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('#dayModal .day-modal-card');
+  if (!card || card.querySelector('.day-modal-delete')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'day-modal-delete';
+  button.textContent = '刪除';
+  button.addEventListener('click', async () => {
+    const record = window.currentDayModalRecord;
+    if (!record) return;
+    const registrant = window.prompt('請輸入原登錄人姓名以確認刪除：');
+    if (registrant === null) return;
+    if (registrant.trim() !== record.registrant) {
+      window.alert('只能由原登錄人刪除這筆資料。');
+      return;
+    }
+    if (!window.confirm(`確定要刪除 ${record.date.replaceAll('-', '/')} 的講員登錄嗎？`)) return;
+    button.disabled = true;
+    const result = await supabaseClient.from('church_speaker_roster').delete().eq('id', record.id);
+    if (result.error) {
+      console.error('刪除排班失敗', result.error);
+      window.alert('刪除失敗，請稍後再試。');
+      button.disabled = false;
+      return;
+    }
+    document.querySelector('#dayModal').hidden = true;
+    window.currentDayModalRecord = null;
+    await loadRecords();
+  });
+  card.appendChild(button);
+})();
 </script>
 <script>
 (() => {
