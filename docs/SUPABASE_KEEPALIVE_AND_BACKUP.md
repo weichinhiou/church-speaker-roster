@@ -18,6 +18,8 @@
 ## 已知限制
 
 - 公開 repo 若 60 天沒有活動，GitHub 會自動停用排程 workflow，需到 Actions 頁面手動重新啟用。
+  - 2026-11-20 決定（Jean 同意）：workflow 每次執行最後會呼叫 GitHub API 重新啟用自己（需 `actions: write` 權限，不產生 commit），當作額外保險。沒選的做法：定期假 commit（污染歷史）、改私有 repo（GitHub Pages 需付費方案）。
+  - 沒驗證：這個做法是否真的會重置 60 天計時，要等 60 天後才能確認；最後防線是本機每週備份（也會查資料表）與 GitHub 的停用通知信。
 - 本機排程只在這台電腦開機時跑；設了「錯過就補跑」。
 - 備份存放在 `D:\Git\church-speaker-roster-backups\`（不在 repo 內，不可 commit）。
 - 這台電腦的網路回應標頭格式不標準（`curl` 回傳 exit 8、PowerShell 預設解析失敗），備份腳本因此啟用寬鬆標頭解析；成因未確認。

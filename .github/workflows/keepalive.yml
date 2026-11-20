@@ -8,6 +8,9 @@ on:
     - cron: '0 2 */3 * *'   # 02:00 UTC every 3 days
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 jobs:
   ping:
     runs-on: ubuntu-latest
@@ -19,3 +22,10 @@ jobs:
             "https://liqvunlcqlxkvyzggyxe.supabase.co/rest/v1/church_speaker_roster?select=id&limit=1")
           echo "HTTP $code"
           test "$code" = "200"
+      # Re-enable this workflow each run so GitHub's 60-day inactivity auto-disable
+      # does not stop the schedule (best effort; failure must not fail the ping).
+      - name: Re-enable this workflow
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"
